@@ -5,8 +5,17 @@ const yenFormatter = new Intl.NumberFormat("ja-JP", {
   maximumFractionDigits: 0,
 });
 
+const thousandsOfYenFormatter = new Intl.NumberFormat("ja-JP", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 3,
+});
+
 export function formatYen(amount: number): string {
   return yenFormatter.format(amount);
+}
+
+export function formatThousandsOfYen(amount: number): string {
+  return `${thousandsOfYenFormatter.format(amount / 1000)}千円`;
 }
 
 export function formatPeriodDate(date: string): string {

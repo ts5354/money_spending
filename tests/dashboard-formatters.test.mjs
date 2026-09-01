@@ -5,6 +5,7 @@ import {
   formatChartDate,
   formatPercentage,
   formatPeriodDate,
+  formatThousandsOfYen,
   formatYen,
 } from "../src/lib/dashboard/dashboard-formatters.ts";
 
@@ -17,6 +18,29 @@ test("formats integer yen amounts with thousands separators and no decimal part"
 
 test("preserves a negative sign when formatting yen", () => {
   assert.match(formatYen(-1200), /-.*1,200/);
+});
+
+test("formats Daily Chart Y-axis ticks in compact thousands of yen", () => {
+  const cases = [
+    [0, "0千円"],
+    [500, "0.5千円"],
+    [1000, "1千円"],
+    [6500, "6.5千円"],
+    [13000, "13千円"],
+    [19500, "19.5千円"],
+    [26000, "26千円"],
+  ];
+
+  for (const [amount, expected] of cases) {
+    assert.equal(formatThousandsOfYen(amount), expected);
+  }
+});
+
+test("keeps the full JPY formatter unchanged for chart tooltips", () => {
+  assert.match(formatYen(500), /[¥￥].*500/);
+  assert.match(formatYen(6500), /[¥￥].*6,500/);
+  assert.match(formatYen(13000), /[¥￥].*13,000/);
+  assert.match(formatYen(26000), /[¥￥].*26,000/);
 });
 
 test("formats period dates, chart dates, and percentages", () => {

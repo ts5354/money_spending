@@ -1,3 +1,5 @@
+import { TransactionExplorer } from "@/components/transactions/transaction-explorer";
+
 export default function TransactionsPage() {
   return (
     <section aria-labelledby="transactions-heading">
@@ -8,10 +10,7 @@ export default function TransactionsPage() {
         </h1>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-card sm:px-10 sm:py-20">
-        <p className="leading-7 text-slate-600">CSVを読み込むと、ここに利用明細が表示されます。</p>
-      </div>
+      <TransactionExplorer />
     </section>
   );
 }
-
