@@ -1,3 +1,5 @@
+import type { Category } from "@/types/category";
+
 export type ParsedTransaction = {
   id: string;
   date: string;
@@ -6,4 +8,9 @@ export type ParsedTransaction = {
   amount: number;
   description: string | null;
   approvalNumber: string | null;
+};
+
+export type Transaction = ParsedTransaction & {
+  category: Category;
+  categorySource: "ai" | "cache" | "manual";
 };

@@ -8,12 +8,15 @@ import {
   parseJcbCsvText,
   readJcbCsvFile,
 } from "@/lib/csv/parse-jcb-csv";
+import { classifyTransactions } from "@/lib/categories/classify-transactions";
 import { useTransactions } from "@/state/transaction-context";
 
 type CsvFileState = {
   file: File | null;
   error: string | null;
 };
+
+type ProcessingStage = "idle" | "parsing" | "classifying";
 
 const initialFileState: CsvFileState = {
   file: null,
@@ -49,7 +52,8 @@ export function CsvDropzone() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileState, setFileState] = useState<CsvFileState>(initialFileState);
   const [isDragging, setIsDragging] = useState(false);
-  const [isParsing, setIsParsing] = useState(false);
+  const [processingStage, setProcessingStage] = useState<ProcessingStage>("idle");
+  const isProcessingRef = useRef(false);
   const { setTransactions } = useTransactions();
 
   const handleFile = (file: File | null) => {
@@ -86,25 +90,33 @@ export function CsvDropzone() {
   };
 
   const handleImport = async () => {
-    if (fileState.file === null || isParsing) {
+    if (fileState.file === null || isProcessingRef.current) {
       return;
     }
 
-    setIsParsing(true);
+    isProcessingRef.current = true;
+    setProcessingStage("parsing");
     setFileState((current) => ({ ...current, error: null }));
 
+    let classificationStarted = false;
     try {
       const csvText = await readJcbCsvFile(fileState.file);
       const parsedTransactions = parseJcbCsvText(csvText);
-      setTransactions(parsedTransactions);
+      classificationStarted = true;
+      setProcessingStage("classifying");
+      const transactions = await classifyTransactions(parsedTransactions);
+      setTransactions(transactions);
       router.push("/");
     } catch (error) {
       setFileState((current) => ({
         ...current,
-        error: getJcbCsvErrorMessage(error),
+        error: classificationStarted
+          ? "利用先の分類に失敗しました。もう一度お試しください。"
+          : getJcbCsvErrorMessage(error),
       }));
     } finally {
-      setIsParsing(false);
+      isProcessingRef.current = false;
+      setProcessingStage("idle");
     }
   };
 
@@ -162,10 +174,14 @@ export function CsvDropzone() {
       <button
         type="button"
         className="mt-6 min-h-12 w-full rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
-        disabled={fileState.file === null || isParsing}
+        disabled={fileState.file === null || processingStage !== "idle"}
         onClick={handleImport}
       >
-        {isParsing ? "読み込み中..." : "このCSVを読み込む"}
+        {processingStage === "parsing"
+          ? "CSVを解析しています..."
+          : processingStage === "classifying"
+            ? "利用先を分類しています..."
+            : "このCSVを読み込む"}
       </button>
     </div>
   );

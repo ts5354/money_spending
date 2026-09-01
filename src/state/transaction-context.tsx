@@ -10,17 +10,17 @@ import {
   type SetStateAction,
 } from "react";
 
-import type { ParsedTransaction } from "@/types/transaction";
+import type { Transaction } from "@/types/transaction";
 
 type TransactionContextValue = {
-  transactions: ParsedTransaction[] | null;
-  setTransactions: Dispatch<SetStateAction<ParsedTransaction[] | null>>;
+  transactions: Transaction[] | null;
+  setTransactions: Dispatch<SetStateAction<Transaction[] | null>>;
 };
 
 const TransactionContext = createContext<TransactionContextValue | null>(null);
 
 export function TransactionProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const [transactions, setTransactions] = useState<ParsedTransaction[] | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[] | null>(null);
   const value = useMemo(() => ({ transactions, setTransactions }), [transactions]);
 
   return <TransactionContext.Provider value={value}>{children}</TransactionContext.Provider>;
