@@ -104,7 +104,9 @@ export function CsvDropzone() {
       const parsedTransactions = parseJcbCsvText(csvText);
       classificationStarted = true;
       setProcessingStage("classifying");
-      const transactions = await classifyTransactions(parsedTransactions);
+      const transactions = await classifyTransactions(parsedTransactions, {
+        storage: window.localStorage,
+      });
       setTransactions(transactions);
       router.push("/");
     } catch (error) {

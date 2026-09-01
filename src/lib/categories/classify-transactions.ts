@@ -3,9 +3,19 @@ import {
   type ClassificationResponse,
 } from "../ai/classification-contract.ts";
 import type { ParsedTransaction, Transaction } from "../../types/transaction.ts";
+import {
+  readCategoryCache,
+  writeCategoryCache,
+  type CategoryCacheStorage,
+} from "./category-cache.ts";
 
 type ClassificationRequester = (merchants: string[]) => Promise<ClassificationResponse>;
 type FetchImplementation = typeof fetch;
+
+type ClassifyTransactionsOptions = {
+  storage: CategoryCacheStorage;
+  requester?: ClassificationRequester;
+};
 
 export class ClientClassificationError extends Error {
   constructor() {
@@ -47,18 +57,51 @@ export async function requestMerchantClassifications(
 
 export async function classifyTransactions(
   parsedTransactions: ParsedTransaction[],
-  requester: ClassificationRequester = requestMerchantClassifications,
+  {
+    storage,
+    requester = requestMerchantClassifications,
+  }: ClassifyTransactionsOptions,
 ): Promise<Transaction[]> {
   const merchants = getUniqueMerchants(parsedTransactions);
-  const response = await requester(merchants);
-  const validated = parseClassificationResponse(response, merchants);
-  const categoryByMerchant = new Map(
-    validated.classifications.map(({ merchant, category }) => [merchant, category]),
-  );
+  const cache = readCategoryCache(storage);
+  const categoryByMerchant = new Map<
+    string,
+    { category: Transaction["category"]; categorySource: Transaction["categorySource"] }
+  >();
+  const uncachedMerchants: string[] = [];
 
-  return parsedTransactions.map((transaction) => ({
-    ...transaction,
-    category: categoryByMerchant.get(transaction.merchantNormalized)!,
-    categorySource: "ai",
-  }));
+  for (const merchant of merchants) {
+    const cachedCategory = cache[merchant];
+    if (cachedCategory === undefined) {
+      uncachedMerchants.push(merchant);
+    } else {
+      categoryByMerchant.set(merchant, {
+        category: cachedCategory,
+        categorySource: "cache",
+      });
+    }
+  }
+
+  if (uncachedMerchants.length > 0) {
+    const response = await requester(uncachedMerchants);
+    const validated = parseClassificationResponse(response, uncachedMerchants);
+
+    for (const { merchant, category } of validated.classifications) {
+      categoryByMerchant.set(merchant, { category, categorySource: "ai" });
+      cache[merchant] = category;
+    }
+
+    // Cache persistence is best-effort. A successful AI result remains usable
+    // even when localStorage is unavailable or full.
+    writeCategoryCache(storage, cache);
+  }
+
+  return parsedTransactions.map((transaction) => {
+    const classification = categoryByMerchant.get(transaction.merchantNormalized)!;
+    return {
+      ...transaction,
+      category: classification.category,
+      categorySource: classification.categorySource,
+    };
+  });
 }
