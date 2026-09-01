@@ -24,7 +24,7 @@ export function DailySpendingChart({ data }: DailySpendingChartProps) {
           <LineChart data={data} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" tickFormatter={formatChartDate} minTickGap={24} />
-            <YAxis tickFormatter={formatThousandsOfYen} width={56} />
+            <YAxis tickFormatter={formatThousandsOfYen} width={68} />
             <Tooltip formatter={(value) => [formatYen(Number(value)), "支出額"]} labelFormatter={(date) => formatPeriodDateForTooltip(String(date))} />
             <Line type="monotone" dataKey="amount" name="支出額" stroke="#2563eb" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} isAnimationActive={false} />
           </LineChart>
