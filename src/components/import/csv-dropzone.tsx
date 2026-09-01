@@ -1,6 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
+
+import {
+  getJcbCsvErrorMessage,
+  parseJcbCsvText,
+  readJcbCsvFile,
+} from "@/lib/csv/parse-jcb-csv";
+import { useTransactions } from "@/state/transaction-context";
 
 type CsvFileState = {
   file: File | null;
@@ -37,9 +45,12 @@ function validateCsvFile(file: File): string | null {
 }
 
 export function CsvDropzone() {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileState, setFileState] = useState<CsvFileState>(initialFileState);
   const [isDragging, setIsDragging] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const { setTransactions } = useTransactions();
 
   const handleFile = (file: File | null) => {
     if (file === null) {
@@ -72,6 +83,29 @@ export function CsvDropzone() {
     event.preventDefault();
     setIsDragging(false);
     handleFile(event.dataTransfer.files?.[0] ?? null);
+  };
+
+  const handleImport = async () => {
+    if (fileState.file === null || isParsing) {
+      return;
+    }
+
+    setIsParsing(true);
+    setFileState((current) => ({ ...current, error: null }));
+
+    try {
+      const csvText = await readJcbCsvFile(fileState.file);
+      const parsedTransactions = parseJcbCsvText(csvText);
+      setTransactions(parsedTransactions);
+      router.push("/");
+    } catch (error) {
+      setFileState((current) => ({
+        ...current,
+        error: getJcbCsvErrorMessage(error),
+      }));
+    } finally {
+      setIsParsing(false);
+    }
   };
 
   return (
@@ -110,7 +144,7 @@ export function CsvDropzone() {
 
       {fileState.error ? (
         <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3" role="alert">
-          <p className="font-semibold text-red-800">ファイルを選択できませんでした</p>
+          <p className="font-semibold text-red-800">CSVファイルを処理できませんでした</p>
           <p className="mt-1 text-sm text-red-700">{fileState.error}</p>
         </div>
       ) : null}
@@ -128,9 +162,10 @@ export function CsvDropzone() {
       <button
         type="button"
         className="mt-6 min-h-12 w-full rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
-        disabled
+        disabled={fileState.file === null || isParsing}
+        onClick={handleImport}
       >
-        このCSVを読み込む
+        {isParsing ? "読み込み中..." : "このCSVを読み込む"}
       </button>
     </div>
   );

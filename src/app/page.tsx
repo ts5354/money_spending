@@ -1,6 +1,12 @@
+"use client";
+
 import Link from "next/link";
 
+import { useTransactions } from "@/state/transaction-context";
+
 export default function DashboardPage() {
+  const { transactions } = useTransactions();
+
   return (
     <section aria-labelledby="dashboard-heading">
       <div className="mb-8">
@@ -10,19 +16,30 @@ export default function DashboardPage() {
         </h1>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-card sm:px-10 sm:py-24">
-        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl" aria-hidden="true">
-          ↥
+      {transactions === null ? (
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-card sm:px-10 sm:py-24">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl" aria-hidden="true">
+            ↥
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">分析するCSVがありません</h2>
+          <p className="mx-auto mt-3 max-w-lg leading-7 text-slate-600">
+            JCBの利用明細CSVをアップロードしてください。
+          </p>
+          <Link className="mt-8 inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white transition hover:bg-blue-800" href="/import">
+            CSVをアップロード
+          </Link>
         </div>
-        <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">分析するCSVがありません</h2>
-        <p className="mx-auto mt-3 max-w-lg leading-7 text-slate-600">
-          JCBの利用明細CSVをアップロードしてください。
-        </p>
-        <Link className="mt-8 inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white transition hover:bg-blue-800" href="/import">
-          CSVをアップロード
-        </Link>
-      </div>
+      ) : (
+        <div className="rounded-2xl border border-emerald-200 bg-white px-6 py-16 text-center shadow-card sm:px-10 sm:py-24">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-2xl text-emerald-700" aria-hidden="true">
+            ✓
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">CSVを読み込みました</h2>
+          <p className="mx-auto mt-3 max-w-lg leading-7 text-slate-600">
+            {transactions.length}件の利用明細を読み込みました。
+          </p>
+        </div>
+      )}
     </section>
   );
 }
-
