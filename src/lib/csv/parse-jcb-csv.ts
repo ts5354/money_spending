@@ -1,8 +1,9 @@
 import Papa from "papaparse";
 
-import type { ParsedTransaction } from "@/types/transaction";
+import type { ParsedJcbStatement, ParsedTransaction } from "@/types/transaction";
 
 const TRANSACTION_SECTION_MARKER = "◆ご利用明細内訳（お振替済分）";
+const STATEMENT_PERIOD_LABEL = "対象期間";
 
 const REQUIRED_HEADERS = {
   user: "ご利用者",
@@ -22,7 +23,9 @@ export type JcbCsvParseErrorCode =
   | "MISSING_TRANSACTION_SECTION"
   | "MISSING_REQUIRED_HEADER"
   | "INVALID_TRANSACTION_ROW"
-  | "NO_TRANSACTIONS";
+  | "NO_TRANSACTIONS"
+  | "MISSING_STATEMENT_PERIOD"
+  | "INVALID_STATEMENT_PERIOD";
 
 export class JcbCsvParseError extends Error {
   readonly code: JcbCsvParseErrorCode;
@@ -63,6 +66,16 @@ export function normalizeMerchant(merchant: string): string {
 }
 
 export function parseJcbCsvText(text: string): ParsedTransaction[] {
+  return parseCsv(text).transactions;
+}
+
+export function parseJcbStatementText(text: string): ParsedJcbStatement {
+  const parsed = parseCsv(text);
+  const { periodStart, periodEnd } = parseStatementPeriod(parsed.rows);
+  return { periodStart, periodEnd, transactions: parsed.transactions };
+}
+
+function parseCsv(text: string): { rows: string[][]; transactions: ParsedTransaction[] } {
   const textWithoutBom = text.replace(/^\uFEFF/, "");
   const result = Papa.parse<string[]>(textWithoutBom, {
     delimiter: ",",
@@ -113,7 +126,45 @@ export function parseJcbCsvText(text: string): ParsedTransaction[] {
     throw new JcbCsvParseError("NO_TRANSACTIONS", "The settled section has no transactions.");
   }
 
-  return transactions;
+  return { rows, transactions };
+}
+
+function parseStatementPeriod(rows: string[][]): Pick<ParsedJcbStatement, "periodStart" | "periodEnd"> {
+  for (const row of rows) {
+    const labelIndex = row.findIndex((cell) => cell.trim() === STATEMENT_PERIOD_LABEL);
+    if (labelIndex === -1) continue;
+
+    const value = row.slice(labelIndex + 1).find((cell) => cell.trim() !== "")?.trim();
+    if (value === undefined) break;
+    const match = /^(\d{4})年(\d{1,2})月(\d{1,2})日[～〜](\d{4})年(\d{1,2})月(\d{1,2})日$/.exec(value);
+    if (match === null) {
+      throw new JcbCsvParseError("INVALID_STATEMENT_PERIOD", "The statement period is malformed.");
+    }
+
+    const periodStart = normalizeCalendarDate(match[1], match[2], match[3]);
+    const periodEnd = normalizeCalendarDate(match[4], match[5], match[6]);
+    if (periodStart === null || periodEnd === null || periodStart > periodEnd) {
+      throw new JcbCsvParseError("INVALID_STATEMENT_PERIOD", "The statement period is invalid.");
+    }
+    return { periodStart, periodEnd };
+  }
+
+  throw new JcbCsvParseError("MISSING_STATEMENT_PERIOD", "The statement period was not found.");
+}
+
+function normalizeCalendarDate(yearText: string, monthText: string, dayText: string): string | null {
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return `${yearText.padStart(4, "0")}-${monthText.padStart(2, "0")}-${dayText.padStart(2, "0")}`;
 }
 
 function findHeader(

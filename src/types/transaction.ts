@@ -10,6 +10,12 @@ export type ParsedTransaction = {
   approvalNumber: string | null;
 };
 
+export type ParsedJcbStatement = {
+  periodStart: string;
+  periodEnd: string;
+  transactions: ParsedTransaction[];
+};
+
 export type Transaction = ParsedTransaction & {
   category: Category;
   categorySource: "ai" | "cache" | "manual";

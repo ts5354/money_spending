@@ -4,7 +4,9 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
@@ -15,10 +17,16 @@ import type { Transaction } from "@/types/transaction";
 import type { Category } from "@/types/category";
 import { writeMerchantCategory } from "@/lib/categories/category-cache";
 import { updateTransactionsForMerchant } from "@/lib/categories/update-merchant-category";
+import { loadPersistedTransactions } from "@/lib/persistence/persistence-client";
+
+export type TransactionLoadStatus = "loading" | "ready" | "error";
 
 type TransactionContextValue = {
   transactions: Transaction[] | null;
+  loadStatus: TransactionLoadStatus;
   setTransactions: Dispatch<SetStateAction<Transaction[] | null>>;
+  appendTransactions: (transactions: Transaction[]) => void;
+  retryLoad: () => void;
   updateMerchantCategory: (merchantNormalized: string, category: Category) => void;
 };
 
@@ -26,6 +34,38 @@ const TransactionContext = createContext<TransactionContextValue | null>(null);
 
 export function TransactionProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
+  const [loadStatus, setLoadStatus] = useState<TransactionLoadStatus>("loading");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const localMutationVersion = useRef(0);
+
+  useEffect(() => {
+    let active = true;
+    const versionAtStart = localMutationVersion.current;
+    void loadPersistedTransactions()
+      .then((persisted) => {
+        if (!active || localMutationVersion.current !== versionAtStart) return;
+        setTransactions(persisted);
+        setLoadStatus("ready");
+      })
+      .catch(() => {
+        if (!active || localMutationVersion.current !== versionAtStart) return;
+        setLoadStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, [loadAttempt]);
+
+  const appendTransactions = useCallback((newTransactions: Transaction[]) => {
+    localMutationVersion.current += 1;
+    setTransactions((current) => [...(current ?? []), ...newTransactions]);
+    setLoadStatus("ready");
+  }, []);
+
+  const retryLoad = useCallback(() => {
+    setLoadStatus("loading");
+    setLoadAttempt((attempt) => attempt + 1);
+  }, []);
   const updateMerchantCategory = useCallback(
     (merchantNormalized: string, category: Category) => {
       writeMerchantCategory(window.localStorage, merchantNormalized, category);
@@ -38,8 +78,8 @@ export function TransactionProvider({ children }: Readonly<{ children: ReactNode
     [],
   );
   const value = useMemo(
-    () => ({ transactions, setTransactions, updateMerchantCategory }),
-    [transactions, updateMerchantCategory],
+    () => ({ transactions, loadStatus, setTransactions, appendTransactions, retryLoad, updateMerchantCategory }),
+    [appendTransactions, loadStatus, retryLoad, transactions, updateMerchantCategory],
   );
 
   return <TransactionContext.Provider value={value}>{children}</TransactionContext.Provider>;

@@ -5,18 +5,22 @@ import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 
 import {
   getJcbCsvErrorMessage,
-  parseJcbCsvText,
+  parseJcbStatementText,
   readJcbCsvFile,
 } from "@/lib/csv/parse-jcb-csv";
 import { classifyTransactions } from "@/lib/categories/classify-transactions";
 import { useTransactions } from "@/state/transaction-context";
+import {
+  persistImportedStatement,
+  PersistenceClientError,
+} from "@/lib/persistence/persistence-client";
 
 type CsvFileState = {
   file: File | null;
   error: string | null;
 };
 
-type ProcessingStage = "idle" | "parsing" | "classifying";
+type ProcessingStage = "idle" | "parsing" | "classifying" | "persisting";
 
 const initialFileState: CsvFileState = {
   file: null,
@@ -54,7 +58,7 @@ export function CsvDropzone() {
   const [isDragging, setIsDragging] = useState(false);
   const [processingStage, setProcessingStage] = useState<ProcessingStage>("idle");
   const isProcessingRef = useRef(false);
-  const { setTransactions } = useTransactions();
+  const { appendTransactions } = useTransactions();
 
   const handleFile = (file: File | null) => {
     if (file === null) {
@@ -98,23 +102,36 @@ export function CsvDropzone() {
     setProcessingStage("parsing");
     setFileState((current) => ({ ...current, error: null }));
 
-    let classificationStarted = false;
+    let failedStage: ProcessingStage = "parsing";
     try {
       const csvText = await readJcbCsvFile(fileState.file);
-      const parsedTransactions = parseJcbCsvText(csvText);
-      classificationStarted = true;
+      const statement = parseJcbStatementText(csvText);
+      failedStage = "classifying";
       setProcessingStage("classifying");
-      const transactions = await classifyTransactions(parsedTransactions, {
+      const transactions = await classifyTransactions(statement.transactions, {
         storage: window.localStorage,
       });
-      setTransactions(transactions);
+      failedStage = "persisting";
+      setProcessingStage("persisting");
+      const persisted = await persistImportedStatement({
+        periodStart: statement.periodStart,
+        periodEnd: statement.periodEnd,
+        transactions,
+      });
+      appendTransactions(persisted.transactions);
       router.push("/");
     } catch (error) {
+      const errorMessage =
+        failedStage === "parsing"
+          ? getJcbCsvErrorMessage(error)
+          : failedStage === "classifying"
+            ? "利用先の分類に失敗しました。もう一度お試しください。"
+            : error instanceof PersistenceClientError && error.code === "IMPORT_ALREADY_EXISTS"
+              ? "この利用明細はすでに読み込まれています。"
+              : "利用明細を保存できませんでした。もう一度お試しください。";
       setFileState((current) => ({
         ...current,
-        error: classificationStarted
-          ? "利用先の分類に失敗しました。もう一度お試しください。"
-          : getJcbCsvErrorMessage(error),
+        error: errorMessage,
       }));
     } finally {
       isProcessingRef.current = false;
@@ -183,6 +200,8 @@ export function CsvDropzone() {
           ? "CSVを解析しています..."
           : processingStage === "classifying"
             ? "利用先を分類しています..."
+            : processingStage === "persisting"
+              ? "利用明細を保存しています..."
             : "このCSVを読み込む"}
       </button>
     </div>

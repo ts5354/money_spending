@@ -1,0 +1,224 @@
+{
+  "id": "5001aa62-e41c-40c2-a967-38947501caa7",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.import_batches": {
+      "name": "import_batches",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "period_start": {
+          "name": "period_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period_end": {
+          "name": "period_end",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fingerprint": {
+          "name": "fingerprint",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transaction_count": {
+          "name": "transaction_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "imported_at": {
+          "name": "imported_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "import_batches_fingerprint_unique": {
+          "name": "import_batches_fingerprint_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "fingerprint"
+          ]
+        },
+        "import_batches_period_unique": {
+          "name": "import_batches_period_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "period_start",
+            "period_end"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "import_batches_period_order_check": {
+          "name": "import_batches_period_order_check",
+          "value": "\"import_batches\".\"period_start\" <= \"import_batches\".\"period_end\""
+        },
+        "import_batches_transaction_count_check": {
+          "name": "import_batches_transaction_count_check",
+          "value": "\"import_batches\".\"transaction_count\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.transactions": {
+      "name": "transactions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "import_batch_id": {
+          "name": "import_batch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_transaction_id": {
+          "name": "source_transaction_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_order": {
+          "name": "source_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "merchant_raw": {
+          "name": "merchant_raw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "merchant_normalized": {
+          "name": "merchant_normalized",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_source": {
+          "name": "category_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approval_number": {
+          "name": "approval_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "transactions_import_batch_id_import_batches_id_fk": {
+          "name": "transactions_import_batch_id_import_batches_id_fk",
+          "tableFrom": "transactions",
+          "tableTo": "import_batches",
+          "columnsFrom": [
+            "import_batch_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "transactions_batch_source_order_unique": {
+          "name": "transactions_batch_source_order_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "import_batch_id",
+            "source_order"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "transactions_source_order_check": {
+          "name": "transactions_source_order_check",
+          "value": "\"transactions\".\"source_order\" >= 0"
+        },
+        "transactions_category_check": {
+          "name": "transactions_category_check",
+          "value": "\"transactions\".\"category\" in ('convenience_store', 'supermarket', 'vending_machine', 'restaurant', 'subscription', 'shopping', 'transportation', 'entertainment', 'other')"
+        },
+        "transactions_category_source_check": {
+          "name": "transactions_category_source_check",
+          "value": "\"transactions\".\"category_source\" in ('ai', 'cache', 'manual')"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

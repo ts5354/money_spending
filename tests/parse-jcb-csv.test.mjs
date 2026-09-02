@@ -5,6 +5,7 @@ import {
   getJcbCsvErrorMessage,
   JcbCsvParseError,
   parseJcbCsvText,
+  parseJcbStatementText,
 } from "../src/lib/csv/parse-jcb-csv.ts";
 
 const MARKER = "◆ご利用明細内訳（お振替済分）";
@@ -207,4 +208,30 @@ test("preserves a negative amount instead of converting it to an absolute value"
 test("rejects malformed CSV syntax reported by Papa Parse", () => {
   const malformed = `${csvRow([MARKER])}\n${csvRow(HEADERS)}\n"0001","2026/08/15","unclosed`;
   assertParseError(malformed, "INVALID_CSV");
+});
+
+test("parses and normalizes the statement target period", () => {
+  const csv = [
+    csvRow(["対象期間", "2026年7月16日～2026年8月15日"]),
+    jcbCsv([transactionRow()]),
+  ].join("\n");
+  const statement = parseJcbStatementText(csv);
+  assert.equal(statement.periodStart, "2026-07-16");
+  assert.equal(statement.periodEnd, "2026-08-15");
+  assert.equal(statement.transactions.length, 1);
+});
+
+test("statement parsing rejects missing, malformed, impossible, and reversed periods", async (t) => {
+  const cases = [
+    ["missing", jcbCsv([transactionRow()]), "MISSING_STATEMENT_PERIOD"],
+    ["malformed", `${csvRow(["対象期間", "2026/07/16-2026/08/15"])}\n${jcbCsv([transactionRow()])}`, "INVALID_STATEMENT_PERIOD"],
+    ["impossible", `${csvRow(["対象期間", "2026年2月30日～2026年3月15日"])}\n${jcbCsv([transactionRow()])}`, "INVALID_STATEMENT_PERIOD"],
+    ["reversed", `${csvRow(["対象期間", "2026年8月16日～2026年8月15日"])}\n${jcbCsv([transactionRow()])}`, "INVALID_STATEMENT_PERIOD"],
+  ];
+  for (const [name, csv, code] of cases) {
+    await t.test(name, () => assert.throws(
+      () => parseJcbStatementText(csv),
+      (error) => error instanceof JcbCsvParseError && error.code === code,
+    ));
+  }
 });

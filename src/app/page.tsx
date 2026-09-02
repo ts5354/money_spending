@@ -7,7 +7,7 @@ import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { useTransactions } from "@/state/transaction-context";
 
 export default function DashboardPage() {
-  const { transactions } = useTransactions();
+  const { transactions, loadStatus, retryLoad } = useTransactions();
 
   return (
     <section aria-labelledby="dashboard-heading">
@@ -18,7 +18,17 @@ export default function DashboardPage() {
         </h1>
       </div>
 
-      {transactions === null ? (
+      {loadStatus === "loading" ? (
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-card" aria-live="polite">
+          <p className="font-semibold text-slate-700">保存済みの利用明細を読み込んでいます...</p>
+        </div>
+      ) : loadStatus === "error" ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-12 text-center shadow-card" role="alert">
+          <h2 className="text-xl font-bold text-red-900">利用明細を読み込めませんでした</h2>
+          <p className="mt-3 text-red-800">通信状況を確認して、もう一度お試しください。</p>
+          <button className="mt-6 min-h-11 rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white" type="button" onClick={retryLoad}>再試行</button>
+        </div>
+      ) : transactions === null || transactions.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-card sm:px-10 sm:py-24">
           <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl" aria-hidden="true">
             ↥
