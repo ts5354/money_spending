@@ -1,6 +1,14 @@
-import { TransactionExplorer } from "@/components/transactions/transaction-explorer";
+import { redirect } from "next/navigation";
 
-export default function TransactionsPage() {
+import { AccessDenied } from "@/components/auth/access-denied";
+import { TransactionExplorer } from "@/components/transactions/transaction-explorer";
+import { getAccessState } from "@/lib/auth/authorization";
+
+export default async function TransactionsPage() {
+  const access = await getAccessState();
+  if (access.status === "unauthenticated") redirect("/sign-in");
+  if (access.status === "forbidden") return <AccessDenied />;
+
   return (
     <section aria-labelledby="transactions-heading">
       <div className="mb-8">

@@ -1,6 +1,14 @@
-import { CsvDropzone } from "@/components/import/csv-dropzone";
+import { redirect } from "next/navigation";
 
-export default function ImportPage() {
+import { AccessDenied } from "@/components/auth/access-denied";
+import { CsvDropzone } from "@/components/import/csv-dropzone";
+import { getAccessState } from "@/lib/auth/authorization";
+
+export default async function ImportPage() {
+  const access = await getAccessState();
+  if (access.status === "unauthenticated") redirect("/sign-in");
+  if (access.status === "forbidden") return <AccessDenied />;
+
   return (
     <section aria-labelledby="import-heading">
       <div className="mb-8">
@@ -17,4 +25,3 @@ export default function ImportPage() {
     </section>
   );
 }
-

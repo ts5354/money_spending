@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import {
   createContext,
   useCallback,
@@ -33,6 +34,7 @@ type TransactionContextValue = {
 const TransactionContext = createContext<TransactionContextValue | null>(null);
 
 export function TransactionProvider({ children }: Readonly<{ children: ReactNode }>) {
+  const { isLoaded, isSignedIn } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
   const [loadStatus, setLoadStatus] = useState<TransactionLoadStatus>("loading");
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -40,21 +42,34 @@ export function TransactionProvider({ children }: Readonly<{ children: ReactNode
 
   useEffect(() => {
     let active = true;
-    const versionAtStart = localMutationVersion.current;
-    void loadPersistedTransactions()
-      .then((persisted) => {
+    const synchronizeSession = async () => {
+      if (!isLoaded) return;
+
+      if (!isSignedIn) {
+        localMutationVersion.current += 1;
+        setTransactions(null);
+        setLoadStatus("loading");
+        return;
+      }
+
+      const versionAtStart = localMutationVersion.current;
+      setLoadStatus("loading");
+      try {
+        const persisted = await loadPersistedTransactions();
         if (!active || localMutationVersion.current !== versionAtStart) return;
         setTransactions(persisted);
         setLoadStatus("ready");
-      })
-      .catch(() => {
+      } catch {
         if (!active || localMutationVersion.current !== versionAtStart) return;
         setLoadStatus("error");
-      });
+      }
+    };
+
+    void synchronizeSession();
     return () => {
       active = false;
     };
-  }, [loadAttempt]);
+  }, [isLoaded, isSignedIn, loadAttempt]);
 
   const appendTransactions = useCallback((newTransactions: Transaction[]) => {
     localMutationVersion.current += 1;

@@ -1,52 +1,12 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import Link from "next/link";
+import { AccessDenied } from "@/components/auth/access-denied";
+import { DashboardPageContent } from "@/components/dashboard/dashboard-page-content";
+import { getAccessState } from "@/lib/auth/authorization";
 
-import { MerchantCategoryEditor } from "@/components/categories/merchant-category-editor";
-import { DashboardContent } from "@/components/dashboard/dashboard-content";
-import { useTransactions } from "@/state/transaction-context";
-
-export default function DashboardPage() {
-  const { transactions, loadStatus, retryLoad } = useTransactions();
-
-  return (
-    <section aria-labelledby="dashboard-heading">
-      <div className="mb-8">
-        <p className="mb-2 text-sm font-semibold text-blue-700">Dashboard</p>
-        <h1 id="dashboard-heading" className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-          支出ダッシュボード
-        </h1>
-      </div>
-
-      {loadStatus === "loading" ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-card" aria-live="polite">
-          <p className="font-semibold text-slate-700">保存済みの利用明細を読み込んでいます...</p>
-        </div>
-      ) : loadStatus === "error" ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-12 text-center shadow-card" role="alert">
-          <h2 className="text-xl font-bold text-red-900">利用明細を読み込めませんでした</h2>
-          <p className="mt-3 text-red-800">通信状況を確認して、もう一度お試しください。</p>
-          <button className="mt-6 min-h-11 rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white" type="button" onClick={retryLoad}>再試行</button>
-        </div>
-      ) : transactions === null || transactions.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-card sm:px-10 sm:py-24">
-          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl" aria-hidden="true">
-            ↥
-          </div>
-          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">分析するCSVがありません</h2>
-          <p className="mx-auto mt-3 max-w-lg leading-7 text-slate-600">
-            JCBの利用明細CSVをアップロードしてください。
-          </p>
-          <Link className="mt-8 inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white transition hover:bg-blue-800" href="/import">
-            CSVをアップロード
-          </Link>
-        </div>
-      ) : (
-        <>
-          <DashboardContent transactions={transactions} />
-          <MerchantCategoryEditor />
-        </>
-      )}
-    </section>
-  );
+export default async function DashboardPage() {
+  const access = await getAccessState();
+  if (access.status === "unauthenticated") redirect("/sign-in");
+  if (access.status === "forbidden") return <AccessDenied />;
+  return <DashboardPageContent />;
 }
