@@ -136,3 +136,20 @@ test("manual category correction only changes category aggregation", () => {
   assert.equal(after.endDate, before.endDate);
   assert.deepEqual(after.dailySummaries, before.dailySummaries);
 });
+
+test("uses only the selected statement transaction collection for every summary", () => {
+  const selected = [
+    transaction({ id: "selected-1", date: "2026-08-01", amount: 1000, category: "shopping" }),
+    transaction({ id: "selected-2", date: "2026-08-02", amount: 500, category: "restaurant" }),
+  ];
+  const summary = aggregateDashboard(selected);
+
+  assert.equal(summary.totalAmount, 1500);
+  assert.deepEqual(summary.categorySummaries.map(({ amount }) => amount), [1000, 500]);
+  assert.deepEqual(summary.dailySummaries, [
+    { date: "2026-08-01", amount: 1000 },
+    { date: "2026-08-02", amount: 500 },
+  ]);
+  assert.equal(summary.startDate, "2026-08-01");
+  assert.equal(summary.endDate, "2026-08-02");
+});

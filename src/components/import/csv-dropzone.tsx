@@ -58,7 +58,7 @@ export function CsvDropzone() {
   const [isDragging, setIsDragging] = useState(false);
   const [processingStage, setProcessingStage] = useState<ProcessingStage>("idle");
   const isProcessingRef = useRef(false);
-  const { appendTransactions } = useTransactions();
+  const { recordImportedBatch } = useTransactions();
 
   const handleFile = (file: File | null) => {
     if (file === null) {
@@ -118,7 +118,7 @@ export function CsvDropzone() {
         periodEnd: statement.periodEnd,
         transactions,
       });
-      appendTransactions(persisted.transactions);
+      recordImportedBatch(persisted.batch, persisted.transactions);
       router.push("/");
     } catch (error) {
       const errorMessage =

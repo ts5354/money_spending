@@ -14,15 +14,15 @@ import {
 import { useTransactions } from "@/state/transaction-context";
 
 export function TransactionExplorer() {
-  const { transactions, loadStatus, retryLoad } = useTransactions();
+  const { selectedTransactions, loadStatus, retryLoad } = useTransactions();
   const [filters, setFilters] = useState<TransactionFilters>(INITIAL_TRANSACTION_FILTERS);
   const validation = validateTransactionFilters(filters);
   const filteredTransactions = useMemo(
     () =>
-      transactions === null || !validation.valid
+      selectedTransactions === null || !validation.valid
         ? []
-        : filterTransactions(transactions, filters),
-    [filters, transactions, validation.valid],
+        : filterTransactions(selectedTransactions, filters),
+    [filters, selectedTransactions, validation.valid],
   );
 
   if (loadStatus === "loading") {
@@ -38,7 +38,7 @@ export function TransactionExplorer() {
     );
   }
 
-  if (transactions === null || transactions.length === 0) {
+  if (selectedTransactions === null || selectedTransactions.length === 0) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-card sm:px-10 sm:py-20">
         <h2 className="text-xl font-bold text-slate-900">利用明細が読み込まれていません</h2>
@@ -73,9 +73,9 @@ export function TransactionExplorer() {
       {validation.valid ? (
         <>
           <p className="text-sm font-semibold text-slate-700" aria-live="polite">
-            {filteredTransactions.length}件 / 全{transactions.length}件
+            {filteredTransactions.length}件 / 全{selectedTransactions.length}件
           </p>
-          <TransactionList transactions={filteredTransactions} totalCount={transactions.length} />
+          <TransactionList transactions={filteredTransactions} totalCount={selectedTransactions.length} />
         </>
       ) : null}
     </div>

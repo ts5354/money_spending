@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  loadPersistedImports,
   loadPersistedTransactions,
   persistImportedStatement,
   PersistenceClientError,
@@ -40,4 +41,55 @@ test("loads persisted transactions and rejects read failures", async () => {
     loadPersistedTransactions(async () => Response.json({ error: { code: "READ_FAILED" } }, { status: 500 })),
     (error) => error instanceof PersistenceClientError && error.code === "READ_FAILED",
   );
+});
+
+test("loads import metadata without caching", async () => {
+  const imports = [{
+    id: "11111111-1111-4111-8111-111111111111",
+    periodStart: "2026-07-16",
+    periodEnd: "2026-08-15",
+    transactionCount: 1,
+    importedAt: "2026-08-20T00:00:00.000Z",
+  }];
+  let captured;
+  assert.deepEqual(await loadPersistedImports(async (url, init) => {
+    captured = { url, init };
+    return Response.json({ imports });
+  }), imports);
+  assert.deepEqual(captured, { url: "/api/imports", init: { cache: "no-store" } });
+});
+
+test("loads one specific batch through the existing batchId query", async () => {
+  let captured;
+  const batchId = "11111111-1111-4111-8111-111111111111";
+  assert.deepEqual(await loadPersistedTransactions(async (url, init) => {
+    captured = { url, init };
+    return Response.json({ transactions: [transaction] });
+  }, batchId), [transaction]);
+  assert.deepEqual(captured, {
+    url: `/api/transactions?batchId=${batchId}`,
+    init: { cache: "no-store" },
+  });
+});
+
+test("all-period loading uses one queryless transaction request", async () => {
+  const calls = [];
+  await loadPersistedTransactions(async (url, init) => {
+    calls.push({ url, init });
+    return Response.json({ transactions: [transaction] });
+  });
+  assert.deepEqual(calls, [{ url: "/api/transactions", init: { cache: "no-store" } }]);
+});
+
+test("import and transaction metadata read failures are safe", async () => {
+  for (const operation of [
+    () => loadPersistedImports(async () => Response.json({ imports: null })),
+    () => loadPersistedImports(async () => new Response(null, { status: 500 })),
+    () => loadPersistedTransactions(async () => Response.json({ transactions: null })),
+  ]) {
+    await assert.rejects(
+      operation(),
+      (error) => error instanceof PersistenceClientError && error.code === "READ_FAILED",
+    );
+  }
 });

@@ -4,9 +4,9 @@ import { CATEGORY_IDS, CATEGORY_LABELS, isCategory } from "@/types/category";
 import { useTransactions } from "@/state/transaction-context";
 
 export function MerchantCategoryEditor() {
-  const { transactions, updateMerchantCategory } = useTransactions();
+  const { selectedTransactions, updateMerchantCategory } = useTransactions();
 
-  if (transactions === null) {
+  if (selectedTransactions === null) {
     return null;
   }
 
@@ -22,7 +22,7 @@ export function MerchantCategoryEditor() {
       </div>
 
       <div className="divide-y divide-slate-200">
-        {transactions.map((transaction) => (
+        {selectedTransactions.map((transaction) => (
           <div key={transaction.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="min-w-0 break-words font-medium text-slate-900">
               {transaction.merchantRaw}

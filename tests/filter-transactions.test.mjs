@@ -193,3 +193,16 @@ test("reflects Manual Correction-like category membership changes", () => {
     ["1"],
   );
 });
+
+test("applies existing filters and stable sorting after statement-period scoping", () => {
+  const selectedPeriodTransactions = transactions.filter(({ id }) => id !== "4");
+  const result = filterTransactions(selectedPeriodTransactions, {
+    category: "shopping",
+    from: "2026-08-01",
+    to: "2026-08-15",
+  });
+
+  assert.deepEqual(result.map(({ id }) => id), ["3", "1"]);
+  assert.equal(result.find(({ id }) => id === "3").amount, -500);
+  assert.equal(transactions.length, 4);
+});

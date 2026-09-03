@@ -1,4 +1,6 @@
 import type {
+  ImportsResponse,
+  ImportBatch,
   ImportSuccessResponse,
   PersistStatementRequest,
   TransactionsResponse,
@@ -40,13 +42,32 @@ export async function persistImportedStatement(
 
 export async function loadPersistedTransactions(
   fetchImplementation: typeof fetch = fetch,
+  batchId?: string,
 ): Promise<Transaction[]> {
   try {
-    const response = await fetchImplementation("/api/transactions", { cache: "no-store" });
+    const url =
+      batchId === undefined
+        ? "/api/transactions"
+        : `/api/transactions?batchId=${encodeURIComponent(batchId)}`;
+    const response = await fetchImplementation(url, { cache: "no-store" });
     if (!response.ok) throw new Error("Read failed.");
     const body = (await response.json()) as TransactionsResponse;
     if (!body || !Array.isArray(body.transactions)) throw new Error("Invalid response.");
     return body.transactions;
+  } catch {
+    throw new PersistenceClientError("READ_FAILED");
+  }
+}
+
+export async function loadPersistedImports(
+  fetchImplementation: typeof fetch = fetch,
+): Promise<ImportBatch[]> {
+  try {
+    const response = await fetchImplementation("/api/imports", { cache: "no-store" });
+    if (!response.ok) throw new Error("Read failed.");
+    const body = (await response.json()) as ImportsResponse;
+    if (!body || !Array.isArray(body.imports)) throw new Error("Invalid response.");
+    return body.imports;
   } catch {
     throw new PersistenceClientError("READ_FAILED");
   }

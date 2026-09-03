@@ -1,6 +1,6 @@
 # Spec 09 — Historical Period Navigation
 
-**Status:** FROZEN — READY FOR IMPLEMENTATION
+**Status:** CLOSED
 **Parent:** `specs/PROJECT_SPEC.md`
 **Depends on:** Spec 01–08
 **Primary goal:** Allow the authorized user to switch Dashboard and Transaction Explorer views between each persisted JCB statement period and all persisted periods.
@@ -549,6 +549,27 @@ Spec 09 is complete only when:
 7. Import selection lifecycle and reload reset are manually verified;
 8. Spec 08 authorization and secret boundaries regress cleanly;
 9. no DB, Production, environment, branding, or out-of-scope change is introduced.
+
+### 16.1 Final Closure Evidence
+
+Final verification completed on 2026-09-03.
+
+```text
+PASS: 80
+FAIL: 0
+NOT VERIFIED: 0
+BLOCKED: 0
+TOTAL: 80
+```
+
+Closure evidence:
+
+- automated tests, ESLint, TypeScript, and `git diff --check` passed;
+- the production build passed in the user's local Mac environment;
+- period ordering, latest selection, all-period selection, stale fallback, request shape, Dashboard aggregation, Explorer filtering, import lifecycle, Manual Correction, and security regressions were verified;
+- Dashboard/Transactions cross-page selection, reload reset, empty/one/multiple-period states, all-period single-request behavior, import selection preservation, and responsive presentation were manually verified;
+- no DB schema, migration, authentication, branding, environment variable, dependency, or Production change was introduced;
+- only fictional/anonymized data was used for verification.
 
 ---
 

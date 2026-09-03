@@ -4,10 +4,18 @@ import Link from "next/link";
 
 import { MerchantCategoryEditor } from "@/components/categories/merchant-category-editor";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { PeriodSelector } from "@/components/periods/period-selector";
 import { useTransactions } from "@/state/transaction-context";
 
 export function DashboardPageContent() {
-  const { transactions, loadStatus, retryLoad } = useTransactions();
+  const {
+    imports,
+    selectedPeriod,
+    selectedTransactions,
+    loadStatus,
+    retryLoad,
+    selectPeriod,
+  } = useTransactions();
 
   return (
     <section aria-labelledby="dashboard-heading">
@@ -17,6 +25,13 @@ export function DashboardPageContent() {
           支出ダッシュボード
         </h1>
       </div>
+
+      <PeriodSelector
+        imports={imports}
+        selectedPeriod={selectedPeriod}
+        disabled={loadStatus === "loading"}
+        onChange={selectPeriod}
+      />
 
       {loadStatus === "loading" ? (
         <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-card" aria-live="polite">
@@ -28,7 +43,7 @@ export function DashboardPageContent() {
           <p className="mt-3 text-red-800">通信状況を確認して、もう一度お試しください。</p>
           <button className="mt-6 min-h-11 rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white" type="button" onClick={retryLoad}>再試行</button>
         </div>
-      ) : transactions === null || transactions.length === 0 ? (
+      ) : selectedTransactions === null || selectedTransactions.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-card sm:px-10 sm:py-24">
           <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl" aria-hidden="true">↥</div>
           <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">分析するCSVがありません</h2>
@@ -37,7 +52,7 @@ export function DashboardPageContent() {
         </div>
       ) : (
         <>
-          <DashboardContent transactions={transactions} />
+          <DashboardContent transactions={selectedTransactions} />
           <MerchantCategoryEditor />
         </>
       )}
