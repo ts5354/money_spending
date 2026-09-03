@@ -1,6 +1,6 @@
 # Spec 08 — Authentication & Private Access
 
-**Status:** Draft — ready for Codex Planning  
+**Status:** CLOSED
 **Parent:** `specs/PROJECT_SPEC.md`  
 **Depends on:** Spec 01–07  
 **Primary goal:** Make the application private so that only one explicitly authorized Clerk user can access protected pages, APIs, and persisted spending data.
@@ -998,6 +998,33 @@ Spec 08 is complete only when:
 15. Final verification report concludes `READY TO COMMIT`.
 
 Do not mark the Spec complete merely because Clerk sign-in renders successfully.
+
+### 22.1 Final Closure Evidence
+
+Final verification completed on 2026-09-03.
+
+```text
+PASS: 180
+FAIL: 0
+NOT VERIFIED: 0
+BLOCKED: 0
+TOTAL: 180
+```
+
+Closure evidence:
+
+- automated tests, ESLint, TypeScript, and `git diff --check` passed;
+- the Next.js production build passed on the local Mac environment;
+- Clerk Development and Production Google sign-in were verified with the allowlisted user;
+- signed-out and non-allowlisted page/API protection was verified in Production;
+- browser-visible Production resources were checked for DB and OpenAI secret exposure;
+- authorized fictional CSV import, Dashboard, Transaction Explorer, persistence, multi-period coexistence, duplicate rejection, and Manual Correction were verified;
+- Daily Spending mobile horizontal scrolling was verified in Production;
+- persistence read failure and retry recovery were verified using browser request blocking without changing Production infrastructure;
+- the authorized empty-DB state was verified locally against the isolated Neon test branch without using or changing Production data;
+- only fictional/anonymized data was used for verification.
+
+No Production data deletion, destructive Production DB test, Production schema change, or real JCB data use was required for closure.
 
 ---
 
