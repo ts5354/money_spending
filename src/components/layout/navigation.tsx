@@ -16,7 +16,7 @@ export async function Navigation() {
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-5 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
         <Link className="w-fit text-lg font-bold tracking-tight text-slate-900" href="/">
-          JCB Spending Visualizer
+          浪費対策ナビ
         </Link>
         {access.status === "authorized" ? (
           <div className="flex flex-wrap items-center gap-6">
